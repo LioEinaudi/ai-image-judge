@@ -1,137 +1,165 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Image Judge</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main class="app-shell">
-      <section class="workspace">
-        <aside class="upload-panel">
-          <div class="brand-row">
-            <div class="mark">AJ</div>
-            <div>
-              <h1>AI Image Judge</h1>
-              <p id="toolStatus">正在检测本机工具...</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Judge | Image Forensics Workbench</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 顶部状态栏 -->
+    <header class="topbar">
+        <div class="logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="10" cy="13" r="2"></circle><line x1="11.4" y1="14.4" x2="15" y2="18"></line></svg>
+            <span>AI Image Judge</span>
+        </div>
+        <div class="top-actions">
+            <button id="lang-toggle" class="language-toggle" type="button" aria-label="Switch language">中文</button>
+            <div class="system-status">
+                <span class="status-badge" id="status-c2pa"><span class="dot"></span>C2PA Tool</span>
+                <span class="status-badge" id="status-exif"><span class="dot"></span>ExifTool</span>
+                <span class="status-badge" id="status-model"><span class="dot"></span>Model</span>
             </div>
-          </div>
+        </div>
+    </header>
 
-          <form id="uploadForm" class="drop-zone">
-            <input id="imageInput" name="image" type="file" accept="image/*" />
-            <div class="drop-copy">
-              <strong>选择或拖入图片</strong>
-              <span>JPEG / PNG / GIF / WebP，最大 25MB</span>
+    <main class="workbench">
+        <!-- 左侧：上传与预览区 -->
+        <section class="panel left-panel">
+            <div class="panel-header">
+                <h2 data-i18n="targetFile">Target File</h2>
             </div>
-            <button class="primary-button" type="submit">
-              <span class="button-icon">↑</span>
-              开始检测
-            </button>
-          </form>
-
-          <div id="filePreview" class="file-preview hidden">
-            <img id="previewImage" alt="待检测图片预览" />
-            <dl>
-              <div>
-                <dt>文件</dt>
-                <dd id="previewName">-</dd>
-              </div>
-              <div>
-                <dt>大小</dt>
-                <dd id="previewSize">-</dd>
-              </div>
-            </dl>
-          </div>
-        </aside>
-
-        <section class="report-panel">
-          <div id="emptyState" class="empty-state">
-            <h2>等待图片</h2>
-            <p>结果会按来源凭证、元数据、弱启发式信号分层展示。</p>
-          </div>
-
-          <div id="loadingState" class="loading-state hidden">
-            <div class="spinner"></div>
-            <span>正在分析原始文件...</span>
-          </div>
-
-          <article id="resultView" class="result-view hidden">
-            <header class="verdict-header">
-              <div>
-                <span id="verdictLabel" class="verdict-pill">Inconclusive</span>
-                <h2 id="verdictTitle">证据不足，无法判断</h2>
-              </div>
-              <div class="confidence-meter">
-                <span id="confidenceValue">0%</span>
-                <div class="meter-track">
-                  <div id="confidenceBar" class="meter-fill"></div>
+            <div class="upload-container">
+                <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp, image/gif" hidden>
+                
+                <!-- 拖拽上传区 -->
+                <div id="dropzone" class="dropzone">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <p class="upload-title" data-i18n-html="uploadTitle">Drop an image here, or <strong>click to upload</strong></p>
+                    <p class="upload-desc" data-i18n="uploadDesc">Supports JPEG, PNG, WEBP, GIF. Max 25MB.</p>
                 </div>
-              </div>
-            </header>
 
-            <div class="info-grid">
-              <div class="info-block">
-                <span>SHA256</span>
-                <code id="shaValue">-</code>
-              </div>
-              <div class="info-block">
-                <span>格式</span>
-                <strong id="typeValue">-</strong>
-              </div>
-              <div class="info-block">
-                <span>尺寸</span>
-                <strong id="dimensionValue">-</strong>
-              </div>
-              <div class="info-block">
-                <span>耗时</span>
-                <strong id="elapsedValue">-</strong>
-              </div>
+                <!-- 预览区 -->
+                <div id="preview-section" class="preview-section hidden">
+                    <div class="image-wrapper">
+                        <img id="image-preview" src="" alt="Preview">
+                    </div>
+                    <div class="file-info-basic">
+                        <span id="preview-filename" class="text-truncate">filename.jpg</span>
+                        <span id="preview-filesize">0 KB</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="btn-clear" class="btn btn-secondary" data-i18n="clear">Clear</button>
+                        <button id="btn-analyze" class="btn btn-primary" data-i18n="analyze">Analyze</button>
+                    </div>
+                </div>
             </div>
-
-            <section class="evidence-section">
-              <h3>证据链</h3>
-              <ul id="evidenceList"></ul>
-            </section>
-
-            <section class="warning-section">
-              <h3>注意事项</h3>
-              <ul id="warningList"></ul>
-            </section>
-
-            <section class="metadata-section">
-              <div class="section-head">
-                <h3>元数据</h3>
-                <button id="copyJsonButton" class="ghost-button" type="button">复制 JSON</button>
-              </div>
-              <div class="metadata-grid">
-                <div>
-                  <h4>内嵌 EXIF</h4>
-                  <pre id="exifBlock">{}</pre>
-                </div>
-                <div>
-                  <h4>像素取证</h4>
-                  <pre id="visualBlock">{}</pre>
-                </div>
-                <div>
-                  <h4>训练模型</h4>
-                  <pre id="modelBlock">{}</pre>
-                </div>
-                <div>
-                  <h4>外部工具</h4>
-                  <pre id="toolBlock">{}</pre>
-                </div>
-              </div>
-              <details>
-                <summary>完整报告</summary>
-                <pre id="rawJsonBlock">{}</pre>
-              </details>
-            </section>
-          </article>
         </section>
-      </section>
-    </main>
 
-    <script src="/app.js"></script>
-  </body>
+        <!-- 右侧：报告区 -->
+        <section class="panel right-panel">
+            <div class="panel-header">
+                <h2 data-i18n="forensicReport">Forensic Report</h2>
+                <span id="elapsed-time" class="elapsed-time hidden"></span>
+            </div>
+
+            <div class="report-container">
+                <!-- 初始状态 -->
+                <div id="state-empty" class="state-view">
+                    <div class="state-symbol" aria-hidden="true">AJ</div>
+                    <p data-i18n-html="emptyState">Upload an image on the left and click “Analyze”.<br>The forensic report will appear here.</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="state-loading" class="state-view hidden">
+                    <div class="spinner"></div>
+                    <p data-i18n="loadingState">Running multi-layer forensic analysis...</p>
+                </div>
+
+                <!-- 错误状态 -->
+                <div id="state-error" class="state-view hidden">
+                    <div class="state-symbol state-symbol-error" aria-hidden="true">!</div>
+                    <p id="error-message" data-i18n="errorDefault">Analysis failed. Please try again.</p>
+                </div>
+
+                <!-- 结果视图 -->
+                <div id="state-result" class="result-view hidden">
+                    <!-- 核心结论 -->
+                    <div class="verdict-card">
+                        <div class="verdict-header">
+                            <h1 id="verdict-title">--</h1>
+                            <span id="verdict-label" class="badge">--</span>
+                        </div>
+                        <div class="confidence-indicator">
+                            <span class="confidence-label" data-i18n="confidence">Confidence</span>
+                            <span id="verdict-confidence" class="confidence-value">--%</span>
+                        </div>
+                    </div>
+
+                    <!-- 模型概率条形图 -->
+                    <div class="section-card">
+                        <h3 data-i18n="modelProbability">Model Probability</h3>
+                        <p class="disclaimer" data-i18n="modelDisclaimer">AI-detection models are statistical signals. Treat the result as supporting evidence, not final proof.</p>
+                        <div class="probability-chart">
+                            <div class="prob-row">
+                                <span class="prob-label" data-i18n="aiGenerated">AI-generated</span>
+                                <div class="prob-bar-container">
+                                    <div id="bar-ai" class="prob-bar bar-ai" style="width: 0%"></div>
+                                </div>
+                                <span id="prob-ai-val" class="prob-val">0%</span>
+                            </div>
+                            <div class="prob-row">
+                                <span class="prob-label" data-i18n="realPhoto">Camera-originated</span>
+                                <div class="prob-bar-container">
+                                    <div id="bar-real" class="prob-bar bar-real" style="width: 0%"></div>
+                                </div>
+                                <span id="prob-real-val" class="prob-val">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 基础信息 -->
+                    <div class="section-card">
+                        <h3 data-i18n="fileInfo">File Fingerprint & Basics</h3>
+                        <div class="info-grid">
+                            <div class="info-item"><span class="label" data-i18n="mimeType">MIME Type</span><span class="value" id="info-type">--</span></div>
+                            <div class="info-item"><span class="label" data-i18n="resolution">Resolution</span><span class="value" id="info-dim">--</span></div>
+                            <div class="info-item"><span class="label" data-i18n="fileSize">File Size</span><span class="value" id="info-size">--</span></div>
+                            <div class="info-item"><span class="label" data-i18n="modelStatus">Model Status</span><span class="value" id="info-model">--</span></div>
+                            <div class="info-item full-width"><span class="label" data-i18n="sha256">SHA256 Hash</span><span class="value hash-text" id="info-sha256">--</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 证据与警告列表 -->
+                    <div class="section-card evidence-card" id="evidence-section">
+                        <h3 data-i18n="evidence">Evidence</h3>
+                        <ul id="list-evidence" class="scannable-list"></ul>
+                    </div>
+
+                    <div class="section-card warning-card" id="warning-section">
+                        <h3 data-i18n="warnings">Warnings</h3>
+                        <ul id="list-warnings" class="scannable-list warning-list"></ul>
+                    </div>
+
+                    <!-- 可展开区域：元数据与原始 JSON -->
+                    <details class="accordion">
+                        <summary data-i18n="metadataDetails">Metadata Details</summary>
+                        <div class="accordion-content">
+                            <pre><code id="code-metadata"></code></pre>
+                        </div>
+                    </details>
+
+                    <details class="accordion">
+                        <summary data-i18n="rawReport">Raw Detection Report</summary>
+                        <div class="accordion-content">
+                            <pre><code id="code-raw"></code></pre>
+                        </div>
+                    </details>
+
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="app.js"></script>
+</body>
 </html>
